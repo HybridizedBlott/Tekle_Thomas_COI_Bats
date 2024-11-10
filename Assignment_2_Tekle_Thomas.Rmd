@@ -34,11 +34,27 @@ header-includes:
 ```{r, comment='', tidy=FALSE,message=FALSE,warning=FALSE}
 # Initializing relevant packages ----
 
-package.list <- c("tidyverse", "ggplot2", "rentrez", "seqinr", "Biostrings", "randomForest", "ggpubr", "caret", "kernlab", "e1071", "ggrepel")
+# Received an error that the package kernlab did not exist so I installed it again manually
+install.packages("kernlab")
+# Kept running into errors where R could not find these packages' functions so I manually ran the libraries
+library(rentrez)
+library(Biostrings)
+library(tidyverse)
+library(ggplot2)
+library(seqinr)
+library(randomForest)
+library(ggpubr)
+library(caret)
+library(kernlab)
+library(e1071)
+library(ggrepel)
+
+package.list <- c("tidyverse", "ggplot2", "rentrez", "seqinr", "Biostrings", "randomForest", "ggpubr","caret", "kernlab", "e1071", "ggrepel")
 
 for (i in 1:length(package.list)) {
   lapply(package.list[i], library, character = T)
 }
+
 
 
 # Data Acquisition and Filtering ----
@@ -55,40 +71,40 @@ N.composition.limit <- 0.01
 
 # Retrieving e_search results with default retmax parameter (20), since there isn't an object containing the maximum number of hits available at this point. Once the initial esearch is ran, the number of hits relayed by the NCBI servers is placed into separate objects serving as the parameter for the second iteration of esearch for the same terms but instead retrieving all available hits.
 
-#VCOI.search.results <- entrez_search(db = database, term = VespertilionidaeCOI.searchterm)
-#VCOI.maxHits <- VCOI.search.results$count
+VCOI.search.results <- entrez_search(db = database, term = VespertilionidaeCOI.searchterm)
+VCOI.maxHits <- VCOI.search.results$count
 
-#VCytB.search.results <- entrez_search(db = database, term = VespertilionidaeCytB.searchterm)
-#VCytB.maxHits <- VCytB.search.results$count
+VCytB.search.results <- entrez_search(db = database, term = VespertilionidaeCytB.searchterm)
+VCytB.maxHits <- VCytB.search.results$count
 
  #retrieving the e_search results data with the maximum number of hits (retmax = Max Hits)
 
-#VCOI.search.results <- entrez_search(db = database, term = VespertilionidaeCOI.searchterm, retmax = VCOI.maxHits, use_history = T)
+VCOI.search.results <- entrez_search(db = database, term = VespertilionidaeCOI.searchterm, retmax = VCOI.maxHits, use_history = T)
 
-#VCytB.search.results <- entrez_search(db = database, term = VespertilionidaeCytB.searchterm, retmax = VCytB.maxHits, use_history = T)
+VCytB.search.results <- entrez_search(db = database, term = VespertilionidaeCytB.searchterm, retmax = VCytB.maxHits, use_history = T)
 
 # As mentioned above, Obtaining NCBI gene sequences using entrez fetch function in fasta format, done via a function which seperates the list of hits denoted on the web history of the NCBI server into batchs of 500 and concatenating them into a single sequence fasta folder. This eleviates the server load as well as bypasses the computational restriction set in place by NCBI when retriving large abundances of sequence data.
 
-#fetch.by.batch <- function(search_results) {
-  #total.size <- search_results$count #placing total hits from esearch into a total size object
-  #totalSeqs <- c() #initializing empty vector for which fasta sequences will be placed in iteratively 
+fetch.by.batch <- function(search_results) {
+  total.size <- search_results$count #placing total hits from esearch into a total size object
+  totalSeqs <- c() #initializing empty vector for which fasta sequences will be placed in iteratively 
 
-  #for (batch in seq(0, total.size, by = 500)) { #efetch for loop that retreives sequences in batches of 500
-    #NewSeq <- entrez_fetch(db = database, web_history = search_results$web_history, retmax = 500, rettype = "fasta", retstart = batch)
+  for (batch in seq(0, total.size, by = 500)) { #efetch for loop that retreives sequences in batches of 500
+    NewSeq <- entrez_fetch(db = database, web_history = search_results$web_history, retmax = 500, rettype = "fasta", retstart = batch)
 
-    #totalSeqs <- c(totalSeqs, NewSeq) #Appending next batch of sequences into total sequences vector
-  #}
-  #return(totalSeqs) 
-#}
+    totalSeqs <- c(totalSeqs, NewSeq) #Appending next batch of sequences into total sequences vector
+  }
+  return(totalSeqs) 
+}
 
 #Calling the fetch.by.batch function for both sequence data sets, then subsequently writing the fasta data onto harddrive.
 
  #dir.create("data")
-#VCOI.sequences <- fetch.by.batch(VCOI.search.results)
-#rite(VCOI.sequences, "../data/VCOI.fasta", sep = "\n")
+VCOI.sequences <- fetch.by.batch(VCOI.search.results)
+write(VCOI.sequences, "../data/VCOI.fasta", sep = "\n")
 
-#VCytB.sequences <- fetch.by.batch(VCytB.search.results)
-#write(VCytB.sequences, "../data/VCytB.fasta", sep = "\n")
+VCytB.sequences <- fetch.by.batch(VCytB.search.results)
+write(VCytB.sequences, "../data/VCytB.fasta", sep = "\n")
 
 
 # Loading the fasta files back onto the R workspace as a DNAStringSet object, then placing the Sequences into two data frames (for each gene [CytB and COI]), extracting and separating key information [sequences, NCBI ID, seq length, species_name, gene, filtering status and seq length] as distinct variables for downstream filtering and analysis.
@@ -127,6 +143,30 @@ dfVCytB_filtered <- dfVCytB %>%
 #All dfs are combined to compare the distribution of sequence lengths between filtered and unfiltered dfs to determine if there was significant change in sequence length variability. 
 
 dfV_combined <- bind_rows(dfVCOI, dfVCOI_filtered, dfVCytB, dfVCytB_filtered)
+
+
+# A boxplot is a great way to visualize the filtered and unfiltered sequence lengths! I also suggest using the summary function to view and compare the exact numbers of min and max sequence length. Checking the dimensions of the dfs before and after filtering would also be helpful to see how many rows were filtered out and if you have enough to proceed with the analysis. 
+
+summary(dfVCOI) # min to max sequence length is 162 to 17,048
+dim(dfVCOI) # 5049 rows by 6 columns
+summary(dfVCOI_filtered) # 597 to 689 nucleotides
+dim(dfVCOI_filtered) # 3449 rows by 6 columns, a reduction of 1600 rows (32% of the original row count)
+
+summary(dfVCytB) # 103 to 17,660
+dim(dfVCytB) # 7853 rows by 6 columns
+summary(dfVCytB_filtered) # 737 to 832
+dim(dfVCytB_filtered) # 1407 rows by 6 columns, a reduction of 6446 rows (82% of the original row count)
+
+# You could also apply a statistical test to determine if there is a significant difference in the number of sequences before and after filtering. This test would help us see if the datasets have been drastically reduced or are too small to be representative. 
+dfV_combined %>%
+  group_by(Gene, Filter_Status) %>%
+  summarise(count = n()) %>%
+  ungroup() %>%
+  spread(key = Filter_Status, value = count) %>%
+  select(Gene, Unfiltered, Filtered) %>%
+  na.omit() %>%
+  {chisq.test(as.matrix(.[, -1]))} %>%
+  print() # Based on the large Chi-squared statistic of 1437 and p-value of 2.2e-16, this suggests that the substantially different sequence counts after filtering are unlikely to have occurred by chance. You may want to investigate whether the filtering process was too aggressive or if the filtered datasets are too small to make robust models or reliable comparisons.
 
 # A Boxplot figure was generated to compare the distribution of sequence lengths, as aforementioned, using the gglot2 package. 2 plot were made, one showing the outliers and the other without. This is to show that the filtering step has greatly reduced the outliers of the graph, and the the remaining sequences are very close in length, therefore reducing the risk of inaccuracy.
 ```
@@ -229,6 +269,14 @@ ggplot() +
 
 # For the second half of the analysis, the radial SVM model is employed to classify genera of bats that have been described in literature to demonstrate varying profiles of pathogenesis, leading to different bat taxa serving as reservoirs to distinct viral families.
 
+# Provide a quick check to see what the top abundant bat genera are for the classification analysis before filtering for them in the next step. This would allow you to confirm which genera are most abundant and can be used for your analysis. 
+# Myotis (count of 1092), Murina (492), Kerivoula (344), and Pipistrellus (320) are indeed the top 4 abundant genera of bats.
+dfVCOI_filtered %>%
+  mutate(genera = word(Species_Name, 1L)) %>%
+  filter(!is.na(Sequence_filtered)) %>%
+  group_by(genera) %>%
+  summarise(observation_count = n()) %>%
+  arrange(desc(observation_count))
 
 
 dfVCOI_filtered.withGenera <- dfVCOI_filtered %>% #Using the top 4 abundant genera of bats for the classification analysis
@@ -244,11 +292,13 @@ dfVCOI_filtered.withGenera <- cbind(dfVCOI_filtered.withGenera,Kmer.five.feature
 
 set.seed(217)
 dfValidation <- dfVCOI_filtered.withGenera %>%
+  as_tibble(.name_repair = "unique") %>% # R gave an error that 256 column names were duplicated and names must be unique so I kept only the unique names with this step
   group_by(genera) %>%
   sample_n(50) #Randomly sampling 50 of each genera of bat for the test set.
 
 set.seed(13)
 dfTraining <- dfVCOI_filtered.withGenera %>%
+  as_tibble(.name_repair = "unique") %>% # Received the same error as the previous step "Can't transform a data frame with duplicate names" so I kept the unique columns again
   filter(!NCBI_ID %in% dfValidation$NCBI_ID) %>%
   group_by(genera) %>%
   sample_n(250) #Randomly sampling 250 of each genera of bat for the training set
