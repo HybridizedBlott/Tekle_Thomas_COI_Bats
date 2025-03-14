@@ -1,9 +1,14 @@
-# Tekle_Thomas_6210_Assignment_3
+# **Investigating the role of the *COI* in developing distinct virome profiles across various genera of bat**
 
-#This is a R script file, which pulls data from the NCBI nucleotide database via the entrez package, performs data cleaning/filtering, comparative training between Radial SVM and Random Forest models using a 10 - fold cross validation and finally performs a supervised clustering analysis. 
+This is analysis involves pulling data from the NCBI nucleotide database via the entrez package, performing data cleaning/filtering, comparative training between Radial SVM and Random Forest models using a 10 - fold cross validation and finally a supervised clustering analysis using the most suitable machine learning model. 
 
-#This analysis sought to a) identify which classifier would be more appropriate for the main objective which is b) determining if the COI gene, a gene suggested to be associated with immunogenic factors, plays a part in developing distinct viral profiles in bat genera. 
+This analysis sought to:
+a) identify which classifier would be more appropriate for the main objective which is..
+b) determining if the COI gene, a gene suggested to be associated with immunogenic factors, plays a part in developing distinct viral profiles in bat genera. 
 
-THIS IS NEW
+---
+**Primary Contributor**:
+- Thomas Tekle
 
-This is also a new addition to the README (COlenick F24)
+**Additional Contribors**:
+- Rebecca Choi
